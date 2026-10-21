@@ -773,12 +773,19 @@ class Handler(BaseHTTPRequestHandler):
                 payload = {}
 
             prompt = str(payload.get("prompt") or "").strip()
-            agents = payload.get("agents") or ["khavis"]
+            raw_agents = payload.get("agents") or payload.get("targets") or payload.get("agent") or ["khavis"]
+            agents = [str(raw_agents)] if isinstance(raw_agents, str) else [str(a) for a in raw_agents]
             capability = payload.get("capability") or None
             raw_models = payload.get("agent_models")
             agent_models = raw_models if isinstance(raw_models, dict) else {}
             isolation_mode = str(payload.get("isolation_mode") or "").strip().lower() or None
-            project_name = str(payload.get("project") or "").strip() or None
+            project_name = str(payload.get("project") or payload.get("project_id") or "").strip() or None
+            collab_mode = str(payload.get("collab_mode") or "auto_loop").strip().lower()
+            previous_context = (
+                payload.get("previous_context")
+                if isinstance(payload.get("previous_context"), dict)
+                else None
+            )
 
             if not prompt:
                 self._send(
@@ -799,11 +806,11 @@ class Handler(BaseHTTPRequestHandler):
                 ZcodeBackend,
             )
             from bot.dispatch import DispatchRouter  # noqa: PLC0415
-            from bot.models import BackendName, DispatchEnvelope  # noqa: PLC0415
+            from bot.models import BackendName  # noqa: PLC0415
+            from core.collab_orchestrator import run_collaborative_workflow  # noqa: PLC0415
             from core.custom_agents import load_custom_agents  # noqa: PLC0415
             from core.env import load_env  # noqa: PLC0415
             from core.workspace_manager import (  # noqa: PLC0415
-                collect_directory_diff,
                 load_workspace_config,
                 prepare_agent_cwd,
             )
@@ -859,56 +866,57 @@ class Handler(BaseHTTPRequestHandler):
                 )
 
             router = DispatchRouter(backends)
-            envelope = DispatchEnvelope(
-                chat_id=1,
-                prompt=prompt,
-                only=agents,
-                capability=capability,
-                workspace_dir=str(shared_dir),
-            )
 
             import asyncio  # noqa: PLC0415
 
             t0 = time.perf_counter()
             loop = asyncio.new_event_loop()
             try:
-                report = loop.run_until_complete(router.dispatch(envelope))
+                orch = loop.run_until_complete(
+                    run_collaborative_workflow(
+                        router=router,
+                        backends=backends,
+                        agents=agents,
+                        prompt=prompt,
+                        capability=capability,
+                        shared_dir=shared_dir,
+                        agent_cwds=agent_cwds,
+                        collab_mode=collab_mode,
+                        previous_context=previous_context,
+                    )
+                )
             finally:
                 loop.close()
             total_ms = int((time.perf_counter() - t0) * 1000)
 
+            results_dump = orch["results"]
             bot_history.record(
                 {
                     "ts": time.time(),
                     "kind": "workbench",
                     "prompt": prompt,
                     "backends": list(agents),
-                    "consensus_source": report.consensus_source or ", ".join(str(a) for a in agents),
+                    "collab_mode": orch["collab_mode"],
+                    "consensus_source": orch["consensus_source"] or ", ".join(str(a) for a in agents),
                     "dispatched_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                    "ok": any(r.ok for r in report.results),
+                    "ok": any(r.get("ok") for r in results_dump),
                     "latency_ms": total_ms,
                 }
             )
 
-            results_dump = []
-            for r in report.results:
-                d = r.model_dump()
-                if not d.get("model") and r.backend in backends:
-                    d["model"] = getattr(backends[r.backend], "model", "")
-                target_cwd = agent_cwds.get(str(r.backend), shared_dir)
-                d["cwd"] = str(target_cwd)
-                diff_info = collect_directory_diff(target_cwd)
-                d["changed_files"] = diff_info.get("changed_files", [])
-                d["diff"] = diff_info.get("diff", "")
-                results_dump.append(d)
-
             res_payload = {
                 "ok": True,
-                "consensus": report.consensus,
-                "consensus_source": report.consensus_source,
+                "collab_mode": orch["collab_mode"],
+                "consensus": orch["consensus"],
+                "consensus_source": orch["consensus_source"],
+                "critique_summary": orch["critique_summary"],
+                "collaboration_steps": orch["collaboration_steps"],
+                "next_actions": orch["next_actions"],
                 "isolation_mode": eff_mode,
                 "project": eff_project,
                 "shared_dir": str(shared_dir),
+                "shared_changed_files": orch["shared_changed_files"],
+                "shared_diff": orch["shared_diff"],
                 "results": results_dump,
             }
             self._send(

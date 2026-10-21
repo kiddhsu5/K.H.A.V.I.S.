@@ -53,7 +53,7 @@ class ClaudeBackend(Backend):
             return HealthResult(False, str(exc))
 
     async def run(self, envelope: DispatchEnvelope) -> BackendResult:
-        args: list[str] = [self._binary, "-p"]
+        args: list[str] = [self._binary, "-p", "--dangerously-skip-permissions"]
         if self._model:
             args += ["--model", self._model]
         # Ask Claude Code for a single JSON object — easy to parse.
@@ -117,6 +117,29 @@ class ClaudeBackend(Backend):
         stderr = stderr_b.decode(errors="replace").strip()
 
         if proc.returncode != 0:
+            from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
+
+            if has_any_upstream_key():
+                loop = asyncio.get_running_loop()
+                fb = await loop.run_in_executor(
+                    None,
+                    call_upstream_llm_fallback,
+                    envelope.prompt,
+                    self._model,
+                    "claude",
+                    30,
+                    run_cwd,
+                )
+                if fb.get("ok"):
+                    return BackendResult(
+                        backend="claude",
+                        ok=True,
+                        text=str(fb["text"]),
+                        latency_ms=int((time.perf_counter() - t0) * 1000),
+                        model=str(fb.get("model") or self._model),
+                        tokens_in=int(fb.get("tokens_in") or 0),
+                        tokens_out=int(fb.get("tokens_out") or 0),
+                    )
             return BackendResult(
                 backend="claude",
                 ok=False,

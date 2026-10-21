@@ -55,7 +55,12 @@ class CodexBackend(Backend):
             return HealthResult(False, repr(exc))
 
     async def run(self, envelope: DispatchEnvelope) -> BackendResult:
-        args: list[str] = [self._binary, "exec", "--skip-git-repo-check"]
+        args: list[str] = [
+            self._binary,
+            "exec",
+            "--skip-git-repo-check",
+            "--dangerously-bypass-approvals-and-sandbox",
+        ]
         if self._model:
             args += ["-m", self._model]
         # Try JSON output first; fall back to plain text if the flag is rejected.

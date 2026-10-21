@@ -863,75 +863,28 @@ def render_workbench_html() -> str:
       <!-- ================================================================= -->
       <section id="view-command" class="tab-content block space-y-5">
 
-        <!-- Top 4 Visual Plan Status Cards with Mini Progress Bars -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="glass-panel p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="card-title-claude">MiniMax-M3.1-Flash</span>
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono">Claude Code 綁定</span>
-            </div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-lg font-bold text-white font-mono" id="stat-minimax">HEALTHY</span>
-              <span class="text-[11px] text-slate-400 font-mono">可動態切換模型</span>
-            </div>
-            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[94%] rounded-full"></div>
-            </div>
+        <!-- Compact Single-Line Fleet & Plan Health Bar (Decluttered UX) -->
+        <div class="glass-panel px-4 py-2.5 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-slate-200 flex items-center gap-1.5">
+              <i class="fas fa-bolt text-emerald-400"></i>
+              <span>全自主執行權限已啟用 (Shell / 讀寫檔案 / 測試驗證)</span>
+            </span>
+            <span class="hidden sm:inline text-slate-600">|</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono text-[11px]">
+              Claude: <strong id="card-title-claude">MiniMax-M3.1-Flash</strong> (<span id="stat-minimax">HEALTHY</span>)
+            </span>
+            <span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 font-mono text-[11px]">
+              Codex: <strong id="card-title-codex">glm-5.3-flashx</strong> (<span id="stat-glm">HEALTHY</span>)
+            </span>
+            <span class="px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 font-mono text-[11px]">
+              Planner: <strong>GPT GO</strong> (<span id="stat-gpt">HEALTHY</span>)
+            </span>
+            <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-mono text-[11px]">
+              AGY: <strong id="card-title-antigravity">antigravity-pro</strong> (<span id="stat-antigravity">READY</span>)
+            </span>
           </div>
-
-          <div class="glass-panel p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="card-title-codex">glm-5.3-flashx</span>
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-400 font-mono">Codex / zcode</span>
-            </div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-lg font-bold text-white font-mono" id="stat-glm">HEALTHY</span>
-              <span class="text-[11px] text-slate-400 font-mono">可動態切換模型</span>
-            </div>
-            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-400 w-[92%] rounded-full"></div>
-            </div>
-          </div>
-
-          <div class="glass-panel p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                GPT GO (OpenAI)
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 font-mono">Planner / 推理</span>
-            </div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-lg font-bold text-white font-mono" id="stat-gpt">HEALTHY</span>
-              <span class="text-[11px] text-slate-400 font-mono">系統架構設計</span>
-            </div>
-            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-sky-500 to-blue-400 w-[90%] rounded-full"></div>
-            </div>
-          </div>
-
-          <div class="glass-panel p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="card-title-antigravity">antigravity-pro</span>
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-mono">Antigravity (AGY)</span>
-            </div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-lg font-bold text-white font-mono" id="stat-antigravity">READY</span>
-              <span class="text-[11px] text-slate-400 font-mono">全域自主代理</span>
-            </div>
-            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-cyan-500 to-teal-400 w-[98%] rounded-full"></div>
-            </div>
-          </div>
+          <span class="text-[11px] text-slate-400">💡 點擊下方 Agent 組合並選擇協同模式，下一個指令即可自動完成實作、互評與驗收</span>
         </div>
 
         <!-- =============================================================== -->
@@ -1350,23 +1303,65 @@ def render_workbench_html() -> str:
             </div>
           </div>
 
-          <!-- Task Prompt Input & Graphical Action Bar -->
+          <!-- Multi-Agent Collaboration Mode Selector & Task Input -->
           <div class="space-y-3 pt-1">
+            <!-- 4 Collaboration Modes Bar -->
+            <div class="p-3 rounded-xl bg-[#050811]/90 border border-sky-500/25 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fas fa-users-cog text-sky-400"></i>
+                  <span>多 Agent 協同工作流模式 (下一個指令，自動做到好)：</span>
+                </span>
+                <span id="collab-mode-desc" class="text-[11px] text-emerald-300 font-mono">
+                  🔥 預設推薦：各 Agent 同時動手實作 → 自動交叉檢查與相互批評 → 自動補執行並產出唯一高完成度結果
+                </span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                <button type="button" id="collab-btn-auto_loop" onclick="setCollabMode('auto_loop')" class="collab-mode-btn px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold text-left transition flex items-center justify-between">
+                  <span>🔥 自動閉環團隊 (推薦)</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/30">實作+互評+收斂</span>
+                </button>
+                <button type="button" id="collab-btn-relay" onclick="setCollabMode('relay')" class="collab-mode-btn px-3 py-2 rounded-lg bg-white/5 text-slate-300 hover:text-white border border-white/10 font-medium text-left transition flex items-center justify-between">
+                  <span>⛓️ 順序接力流水線</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10">1棒→2棒→3棒</span>
+                </button>
+                <button type="button" id="collab-btn-critique" onclick="setCollabMode('critique')" class="collab-mode-btn px-3 py-2 rounded-lg bg-white/5 text-slate-300 hover:text-white border border-white/10 font-medium text-left transition flex items-center justify-between">
+                  <span>⚔️ 雙向交叉互評</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10">挑刺+實機修正</span>
+                </button>
+                <button type="button" id="collab-btn-parallel" onclick="setCollabMode('parallel')" class="collab-mode-btn px-3 py-2 rounded-lg bg-white/5 text-slate-300 hover:text-white border border-white/10 font-medium text-left transition flex items-center justify-between">
+                  <span>⚡ 獨立並發比對</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10">僅同時執行</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Multi-Turn Continuation Banner (Hidden until Step 2+) -->
+            <div id="active-context-banner" class="hidden px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-2 text-amber-200">
+                <i class="fas fa-link text-amber-400"></i>
+                <span id="active-context-text" class="font-medium">已掛載上一輪執行成果記憶，Agent 將直接接著上一輪進度繼續往下做！</span>
+              </div>
+              <button type="button" onclick="clearContinuationContext()" class="px-2 py-0.5 rounded bg-black/40 hover:bg-rose-500/30 text-slate-300 hover:text-rose-200 border border-white/10 text-[11px] font-mono transition">
+                ✕ 清除記憶 (開啟全新任務)
+              </button>
+            </div>
+
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <i class="fas fa-magic text-sky-400"></i>
-                <span>點擊載入圖形化任務範本：</span>
+                <span>快速任務範本：</span>
               </span>
               <div class="flex items-center gap-2 overflow-x-auto text-xs">
                 <button onclick="setPromptTemplate('architecture')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">🏛️ 系統架構設計</button>
-                <button onclick="setPromptTemplate('code_refactor')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">⚡ 代碼重構與優化</button>
-                <button onclick="setPromptTemplate('unit_test')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">🧪 單元測試覆蓋</button>
-                <button onclick="setPromptTemplate('debate_review')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">🔍 多 Agent 交叉審查</button>
+                <button onclick="setPromptTemplate('code_refactor')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">⚡ 代碼實作與重構</button>
+                <button onclick="setPromptTemplate('unit_test')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">🧪 自動撰寫並跑測試</button>
+                <button onclick="setPromptTemplate('debate_review')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 hover:text-sky-300 border border-white/5 text-slate-300 transition">🔍 系統診斷與交叉審查</button>
               </div>
             </div>
 
             <div class="relative">
-              <textarea id="prompt-input" rows="3" placeholder="在此輸入您的任務指示，上方選取的圖形節點將並發執行並匯流產出共識..." class="w-full bg-[#050811]/90 border border-white/10 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-sans resize-y"></textarea>
+              <textarea id="prompt-input" rows="3" placeholder="直接輸入您的目標（例如：『幫我在共用資料夾寫一個健康檢查腳本並直接執行驗證』），選取的 Agent 將自動實作、互評並給出高完成度成果..." class="w-full bg-[#050811]/90 border border-white/10 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-sans resize-y"></textarea>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1383,76 +1378,85 @@ def render_workbench_html() -> str:
 
               <button id="btn-dispatch" onclick="submitDispatch()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 hover:from-sky-400 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-sky-500/25 flex items-center gap-2 transition transform active:scale-95">
                 <i class="fas fa-play"></i>
-                <span>啟動圖形化並發派工</span>
+                <span id="btn-dispatch-label">啟動多 Agent 自主協同執行</span>
               </button>
             </div>
           </div>
         </div>
 
         <!-- =============================================================== -->
-        <!-- GRAPHICAL 7-ROLE LANGGRAPH DAG & LIVE EXECUTION FEED            -->
+        <!-- FOCUSED DELIVERABLE, NEXT-STEP BAR & COLLAPSIBLE AGENT DETAILS  -->
         <!-- =============================================================== -->
-        <div id="execution-panel" class="glass-panel p-5 rounded-2xl border border-white/10 space-y-5">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div id="execution-panel" class="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
             <div class="flex items-center gap-3">
               <div id="exec-spinner" class="hidden w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-              <i class="fas fa-project-diagram text-sky-400"></i>
-              <span id="exec-status-text" class="font-bold text-white text-sm">LangGraph 7 角色協同有向圖 (DAG Pipeline) · 待命就緒</span>
+              <i class="fas fa-trophy text-amber-400"></i>
+              <span id="exec-status-text" class="font-bold text-white text-sm">自主協同交付中心 · 待命就緒 (支援同時實作、接力、交叉檢查與互評)</span>
             </div>
-            <span id="exec-timer" class="font-mono text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">0.0s</span>
-          </div>
-
-          <!-- Graphical 7-Stage DAG Visualizer -->
-          <div id="pipeline-stepper" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-center text-xs font-mono">
-            <div class="step-planner p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-compass text-base text-sky-400"></i>
-              <span class="font-bold">1. Planner</span>
-              <span class="text-[10px] text-slate-400">任務拆解</span>
-            </div>
-            <div class="step-coder_a p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-code text-base text-emerald-400"></i>
-              <span class="font-bold">2. Coder A</span>
-              <span class="text-[10px] text-slate-400">Clean Code ∥</span>
-            </div>
-            <div class="step-coder_b p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-shield-alt text-base text-indigo-400"></i>
-              <span class="font-bold">3. Coder B</span>
-              <span class="text-[10px] text-slate-400">Defensive ∥</span>
-            </div>
-            <div class="step-debater p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-comments text-base text-amber-400"></i>
-              <span class="font-bold">4. Debater</span>
-              <span class="text-[10px] text-slate-400">A/B 交叉辯論</span>
-            </div>
-            <div class="step-critic p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-search-plus text-base text-rose-400"></i>
-              <span class="font-bold">5. Critic</span>
-              <span class="text-[10px] text-slate-400">邊界與安全審查</span>
-            </div>
-            <div class="step-verifier p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-vial text-base text-teal-400"></i>
-              <span class="font-bold">6. Verifier</span>
-              <span class="text-[10px] text-slate-400">驗證與重試迴圈</span>
-            </div>
-            <div class="step-learner p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
-              <i class="fas fa-brain text-base text-purple-400"></i>
-              <span class="font-bold">7. Learner</span>
-              <span class="text-[10px] text-slate-400">記憶庫沉澱</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="document.getElementById('dag-detail-drawer').classList.toggle('hidden')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono border border-white/10 transition">
+                <i class="fas fa-project-diagram mr-1 text-sky-400"></i>📊 展開/收合流程圖與延遲
+              </button>
+              <span id="exec-timer" class="font-mono text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">0.0s</span>
             </div>
           </div>
 
-          <!-- Visual Latency Comparison Chart (Populated on Dispatch Completion) -->
-          <div id="latency-chart-box" class="hidden p-4 rounded-xl bg-[#050811]/70 border border-white/10 space-y-2.5">
-            <div class="text-xs font-bold text-slate-300 flex items-center gap-2">
-              <i class="fas fa-chart-bar text-sky-400"></i>
-              <span>各 Agent 響應延遲與執行效能視覺化對比</span>
+          <!-- Collapsible 7-Stage DAG & Latency Chart (Hidden by default to keep UI clean!) -->
+          <div id="dag-detail-drawer" class="hidden space-y-3 pt-1">
+            <div id="pipeline-stepper" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-center text-xs font-mono">
+              <div class="step-planner p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-compass text-base text-sky-400"></i>
+                <span class="font-bold">1. Planner</span>
+                <span class="text-[10px] text-slate-400">任務拆解</span>
+              </div>
+              <div class="step-coder_a p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-code text-base text-emerald-400"></i>
+                <span class="font-bold">2. Coder A</span>
+                <span class="text-[10px] text-slate-400">實作 A ∥</span>
+              </div>
+              <div class="step-coder_b p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-shield-alt text-base text-indigo-400"></i>
+                <span class="font-bold">3. Coder B</span>
+                <span class="text-[10px] text-slate-400">實作 B ∥</span>
+              </div>
+              <div class="step-debater p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-comments text-base text-amber-400"></i>
+                <span class="font-bold">4. Debater</span>
+                <span class="text-[10px] text-slate-400">交叉檢查</span>
+              </div>
+              <div class="step-critic p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-search-plus text-base text-rose-400"></i>
+                <span class="font-bold">5. Critic</span>
+                <span class="text-[10px] text-slate-400">相互批評</span>
+              </div>
+              <div class="step-verifier p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-vial text-base text-teal-400"></i>
+                <span class="font-bold">6. Verifier</span>
+                <span class="text-[10px] text-slate-400">實機補做驗證</span>
+              </div>
+              <div class="step-learner p-3 rounded-xl bg-white/5 text-slate-300 border border-white/10 flex flex-col items-center gap-1.5">
+                <i class="fas fa-brain text-base text-purple-400"></i>
+                <span class="font-bold">7. Final</span>
+                <span class="text-[10px] text-slate-400">高完成度收斂</span>
+              </div>
             </div>
-            <div id="latency-bars-container" class="space-y-2 text-xs font-mono"></div>
+
+            <div id="latency-chart-box" class="hidden p-4 rounded-xl bg-[#050811]/70 border border-white/10 space-y-2.5">
+              <div class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <i class="fas fa-chart-bar text-sky-400"></i>
+                <span>各 Agent 響應延遲與執行效能對比</span>
+              </div>
+              <div id="latency-bars-container" class="space-y-2 text-xs font-mono"></div>
+            </div>
           </div>
 
-          <!-- Live Output Stream Container -->
-          <div id="live-results-container" class="space-y-3">
-            <!-- Results cards injected here -->
+          <!-- Live Output Stream Container (Hero Deliverable + Next-Step Bar + Collapsible Agent Details) -->
+          <div id="live-results-container" class="space-y-4">
+            <div class="p-6 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center space-y-2">
+              <div class="text-slate-300 font-bold text-sm">👆 選擇上方 Agent 並輸入一個指令，系統將自動完成「實作 → 交叉檢查與互評 → 最終高完成度交付」</div>
+              <div class="text-xs text-slate-400">完成後將在此直接顯示唯一一份整合成果，並提供「🚀 一鍵下一步接力 / 繼續追問」按鈕，無須重頭下指令！</div>
+            </div>
           </div>
         </div>
 
@@ -2382,6 +2386,85 @@ def render_workbench_html() -> str:
       });
     }
 
+    let currentCollabMode = 'auto_loop';
+    let previousTurnContext = null;
+    let latestNextActions = [];
+    let latestFinalDeliverableText = '';
+
+    const COLLAB_MODE_DESCS = {
+      auto_loop: '🔥 預設推薦：各 Agent 同時動手實作 → 自動交叉檢查與相互批評 → 自動補執行並產出唯一高完成度結果',
+      relay: '⛓️ 順序接力：依選取順序第 1 棒先做 → 第 2 棒讀取成果接手深化 → 第 3 棒測試驗收',
+      critique: '⚔️ 雙向互評：各 Agent 各自實作後交換挑刺批評，並直接在主機上修正漏洞產出最終版',
+      parallel: '⚡ 獨立並發：所有選取的 Agent 同時獨立執行，適合快速比對不同模型思路'
+    };
+
+    function setCollabMode(mode) {
+      currentCollabMode = mode || 'auto_loop';
+      ['auto_loop', 'relay', 'critique', 'parallel'].forEach(m => {
+        const btn = document.getElementById(`collab-btn-${m}`);
+        if (!btn) return;
+        if (m === currentCollabMode) {
+          btn.className = 'collab-mode-btn px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold text-left transition flex items-center justify-between';
+        } else {
+          btn.className = 'collab-mode-btn px-3 py-2 rounded-lg bg-white/5 text-slate-300 hover:text-white border border-white/10 font-medium text-left transition flex items-center justify-between';
+        }
+      });
+      const desc = document.getElementById('collab-mode-desc');
+      if (desc && COLLAB_MODE_DESCS[currentCollabMode]) {
+        desc.textContent = COLLAB_MODE_DESCS[currentCollabMode];
+      }
+    }
+
+    function syncContinuationBanner() {
+      const banner = document.getElementById('active-context-banner');
+      const textEl = document.getElementById('active-context-text');
+      const btnLabel = document.getElementById('btn-dispatch-label');
+      if (!banner) return;
+      if (previousTurnContext && previousTurnContext.consensus) {
+        banner.classList.remove('hidden');
+        if (textEl) {
+          textEl.textContent = `🔗 連續協同第 ${(previousTurnContext.step || 1) + 1} 步：已自動帶入上一輪成果（「${(previousTurnContext.prompt || '').slice(0, 36)}...」），直接下指令即可接著做！`;
+        }
+        if (btnLabel) btnLabel.textContent = `接續上一輪成果執行下一步 (Step ${(previousTurnContext.step || 1) + 1})`;
+      } else {
+        banner.classList.add('hidden');
+        if (btnLabel) btnLabel.textContent = '啟動多 Agent 自主協同執行';
+      }
+    }
+
+    function clearContinuationContext() {
+      previousTurnContext = null;
+      syncContinuationBanner();
+    }
+
+    function copyFinalDeliverable() {
+      if (!latestFinalDeliverableText) return;
+      navigator.clipboard.writeText(latestFinalDeliverableText);
+      alert('✅ 已複製最終交付成果至剪貼簿！');
+    }
+
+    async function runNextStepAction(idx) {
+      const act = latestNextActions[idx];
+      if (!act) return;
+      if (act.mode) setCollabMode(act.mode);
+      const input = document.getElementById('prompt-input');
+      if (input) input.value = act.prompt;
+      await submitDispatch();
+    }
+
+    async function submitFollowup() {
+      const followEl = document.getElementById('followup-inline-input');
+      if (!followEl) return;
+      const val = followEl.value.trim();
+      if (!val) {
+        alert('請輸入下一步追問或追加指令！');
+        return;
+      }
+      const input = document.getElementById('prompt-input');
+      if (input) input.value = val;
+      await submitDispatch();
+    }
+
     async function submitDispatch() {
       const prompt = document.getElementById('prompt-input').value.trim();
       if (!prompt) {
@@ -2405,7 +2488,12 @@ def render_workbench_html() -> str:
 
       if (spinner) spinner.classList.remove('hidden');
       if (chartBox) chartBox.classList.add('hidden');
-      resultsContainer.innerHTML = '';
+      resultsContainer.innerHTML = `
+        <div class="p-6 rounded-2xl bg-sky-500/5 border border-sky-500/20 text-center space-y-2 animate-pulse">
+          <div class="text-sky-300 font-bold text-sm">⚡ 正在調度 [${selectedAgents.map(a => escapeHtml(a)).join(' + ')}] 執行「${escapeHtml(currentCollabMode)}」自主協同工作流...</div>
+          <div class="text-xs text-slate-400">Agent 正在雲端主機與共用專案資料夾內實機執行工具、進行交叉檢查與相互批評，請稍候...</div>
+        </div>
+      `;
       btn.disabled = true;
       btn.classList.add('opacity-50');
       syncTopologyBeams(true);
@@ -2428,7 +2516,7 @@ def render_workbench_html() -> str:
         document.getElementById('exec-timer').textContent = `${elapsed}s`;
       }, 100);
 
-      statusText.textContent = `執行中：正在並發調度 [${selectedAgents.join(', ')}]...`;
+      statusText.textContent = `執行中：正在以 [${currentCollabMode}] 模式調度 [${selectedAgents.join(', ')}]...`;
 
       try {
         const resp = await fetch('/api/workbench/dispatch', {
@@ -2440,7 +2528,9 @@ def render_workbench_html() -> str:
             capability: capability || null,
             agent_models: currentAgentModels,
             isolation_mode: currentIsolationMode,
-            project: currentProjectName
+            project: currentProjectName,
+            collab_mode: currentCollabMode,
+            previous_context: previousTurnContext
           })
         });
 
@@ -2458,31 +2548,119 @@ def render_workbench_html() -> str:
         }
 
         setPipelineStepState(PIPELINE_STEPS.length, true);
-        statusText.textContent = `✅ 並發派工完成！共 ${data.results ? data.results.length : 1} 個 Agent 節點回傳 (最優共識: ${data.consensus_source || '自動合成'}) · 模式: ${data.isolation_mode === 'worktree' ? 'Git Worktree 隔離' : '共用專案資料夾'}`;
+        const modeLabels = {
+          auto_loop: '🔥 自動閉環 (實作+互評+收斂)',
+          relay: '⛓️ 順序接力流水線',
+          critique: '⚔️ 雙向交叉互評',
+          parallel: '⚡ 獨立並發比對'
+        };
+        statusText.textContent = `✅ 協同完成！模式: ${modeLabels[data.collab_mode] || data.collab_mode} · 共 ${data.results ? data.results.length : 1} 個節點參與`;
 
-        if (data.results && data.results.length > 0) {
-          // Render Graphical Latency Bar Chart
-          if (chartBox && barsContainer) {
-            const maxLat = Math.max(100, ...data.results.map(r => r.latency_ms || 50));
-            barsContainer.innerHTML = data.results.map(r => {
-              const pct = Math.max(6, Math.min(100, Math.round(((r.latency_ms || 50) / maxLat) * 100)));
-              const barColor = r.ok ? 'from-sky-500 to-emerald-400' : 'from-amber-500 to-rose-400';
-              return `
-                <div class="grid grid-cols-12 items-center gap-2">
-                  <div class="col-span-3 sm:col-span-2 text-slate-300 font-bold uppercase truncate">${escapeHtml(r.backend)}</div>
-                  <div class="col-span-7 sm:col-span-8 bg-white/5 h-3 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                  </div>
-                  <div class="col-span-2 text-right text-sky-400">${r.latency_ms || 0} ms</div>
+        const finalConsensus = data.consensus || ((data.results && data.results[0]) ? (data.results[0].text || data.results[0].error) : '');
+        latestFinalDeliverableText = finalConsensus || '';
+        latestNextActions = Array.isArray(data.next_actions) ? data.next_actions : [];
+
+        // Save context for seamless next-step continuation
+        previousTurnContext = {
+          prompt: prompt,
+          consensus: finalConsensus,
+          step: (previousTurnContext ? (previousTurnContext.step || 1) + 1 : 1)
+        };
+        syncContinuationBanner();
+
+        resultsContainer.innerHTML = '';
+
+        // 1. Render Latency Bar Chart into the collapsible drawer
+        if (data.results && data.results.length > 0 && chartBox && barsContainer) {
+          const maxLat = Math.max(100, ...data.results.map(r => r.latency_ms || 50));
+          barsContainer.innerHTML = data.results.map(r => {
+            const pct = Math.max(6, Math.min(100, Math.round(((r.latency_ms || 50) / maxLat) * 100)));
+            const barColor = r.ok ? 'from-sky-500 to-emerald-400' : 'from-amber-500 to-rose-400';
+            return `
+              <div class="grid grid-cols-12 items-center gap-2">
+                <div class="col-span-3 sm:col-span-2 text-slate-300 font-bold uppercase truncate">${escapeHtml(r.backend)}</div>
+                <div class="col-span-7 sm:col-span-8 bg-white/5 h-3 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                 </div>
-              `;
-            }).join('');
-            chartBox.classList.remove('hidden');
-          }
+                <div class="col-span-2 text-right text-sky-400">${r.latency_ms || 0} ms</div>
+              </div>
+            `;
+          }).join('');
+          chartBox.classList.remove('hidden');
+        }
 
-          data.results.forEach(res => {
-            const card = document.createElement('div');
-            card.className = "p-4 rounded-xl bg-white/5 border border-white/10 space-y-2";
+        // 2. HERO CARD: 🏆 最終高完成度整合交付成果 (Top Priority Focus)
+        const sharedChanged = Array.isArray(data.shared_changed_files) ? data.shared_changed_files : [];
+        const nextButtonsHtml = latestNextActions.map((act, idx) => `
+          <button type="button" onclick="runNextStepAction(${idx})" class="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/30 text-sky-200 border border-sky-500/30 text-xs font-medium text-left transition flex items-center justify-between gap-2 group">
+            <span>${escapeHtml(act.label)}</span>
+            <i class="fas fa-arrow-right text-sky-400 group-hover:translate-x-0.5 transition"></i>
+          </button>
+        `).join('');
+
+        const heroCard = document.createElement('div');
+        heroCard.className = 'rounded-2xl bg-gradient-to-b from-emerald-950/30 to-[#080E1E] border border-emerald-500/40 p-5 space-y-4 shadow-xl';
+        heroCard.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
+                <i class="fas fa-trophy text-amber-400"></i>
+                <span>🏆 最終高完成度交付成果</span>
+              </span>
+              <span class="text-xs font-mono text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                來源: ${escapeHtml(data.consensus_source || 'Multi-Agent Synthesis')}
+              </span>
+              ${sharedChanged.length > 0 ? `
+                <span class="text-xs font-mono text-teal-300 bg-teal-500/15 px-2 py-0.5 rounded border border-teal-500/30">
+                  <i class="fas fa-file-code mr-1"></i>已變更 ${sharedChanged.length} 個專案檔案
+                </span>
+              ` : ''}
+            </div>
+            <button type="button" onclick="copyFinalDeliverable()" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition flex items-center gap-1.5">
+              <i class="fas fa-copy text-emerald-400"></i>複製最終成果
+            </button>
+          </div>
+
+          ${data.critique_summary ? `
+            <div class="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200 flex items-center gap-2">
+              <i class="fas fa-check-double text-amber-400"></i>
+              <span>${escapeHtml(data.critique_summary)}</span>
+            </div>
+          ` : ''}
+
+          <div class="text-xs sm:text-sm font-mono text-slate-100 whitespace-pre-wrap leading-relaxed max-h-[34rem] overflow-y-auto p-4 bg-[#050811]/90 border border-white/10 rounded-xl">${escapeHtml(finalConsensus || '無返回內容')}</div>
+
+          <!-- 🚀 NEXT-STEP CONTINUATION BAR (一鍵下一步 & 直接追問接力) -->
+          <div class="p-4 rounded-xl bg-[#0B1326] border border-sky-500/30 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                <i class="fas fa-forward text-sky-400"></i>
+                <span>🚀 接下來要怎麼做？（點擊下方一鍵接力，或直接輸入下一句話，系統會自動帶著本輪結果繼續執行）</span>
+              </div>
+              <span class="text-[11px] font-mono text-emerald-400">✓ 已自動記住本輪上下文</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              ${nextButtonsHtml}
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+              <input id="followup-inline-input" type="text" onkeydown="if(event.key==='Enter'){event.preventDefault();submitFollowup();}" placeholder="💬 直接輸入下一步指令（例如：『幫我實際執行上面的修改』或『交給 Codex 寫測試』），按 Enter 立即接力..." class="flex-1 bg-[#050811] border border-white/15 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400" />
+              <button type="button" onclick="submitFollowup()" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs sm:text-sm transition shrink-0 flex items-center justify-center gap-1.5">
+                <i class="fas fa-paper-plane"></i>
+                <span>繼續下一步 &rarr;</span>
+              </button>
+            </div>
+          </div>
+        `;
+        resultsContainer.appendChild(heroCard);
+
+        // 3. COLLAPSIBLE DRAWER: 👥 各 Agent 實作過程、接力棒次與 Diff 明細 (Decluttered!)
+        if (data.results && data.results.length > 0) {
+          const detailsEl = document.createElement('details');
+          detailsEl.className = 'rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden';
+
+          const cardsInner = data.results.map(res => {
             const changedFiles = Array.isArray(res.changed_files) ? res.changed_files : [];
             const diffSection = (res.diff || changedFiles.length > 0) ? `
               <div class="mt-2 pt-2 border-t border-white/10 space-y-1.5">
@@ -2497,25 +2675,40 @@ def render_workbench_html() -> str:
                 ${res.diff ? `<div class="p-2 rounded bg-[#050811] border border-white/10 text-[11px] font-mono max-h-40 overflow-y-auto">${formatColorizedDiff(res.diff)}</div>` : ''}
               </div>
             ` : '';
-            card.innerHTML = `
-              <div class="flex items-center justify-between border-b border-white/10 pb-2">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold ${res.ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'}">
-                    ${res.ok ? 'SUCCESS' : 'STANDBY / NOTICE'}
-                  </span>
-                  <strong class="text-white text-sm uppercase">${escapeHtml(res.backend)}</strong>
-                  <span class="text-xs text-slate-400">(${escapeHtml(res.model || 'Default Model')})</span>
-                  ${res.cwd ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30"><i class="fas fa-folder-open mr-1"></i>${escapeHtml(res.cwd)}</span>` : ''}
+            return `
+              <div class="p-4 rounded-xl bg-black/30 border border-white/10 space-y-2">
+                <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold ${res.ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'}">
+                      ${res.ok ? 'SUCCESS' : 'STANDBY / NOTICE'}
+                    </span>
+                    <strong class="text-white text-sm uppercase">${escapeHtml(res.backend)}</strong>
+                    <span class="text-xs text-slate-400">(${escapeHtml(res.model || 'Default Model')})</span>
+                    ${res.cwd ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30"><i class="fas fa-folder-open mr-1"></i>${escapeHtml(res.cwd)}</span>` : ''}
+                  </div>
+                  <div class="text-xs font-mono text-slate-400">
+                    <i class="fas fa-clock mr-1"></i>${res.latency_ms || 0}ms
+                  </div>
                 </div>
-                <div class="text-xs font-mono text-slate-400">
-                  <i class="fas fa-clock mr-1"></i>${res.latency_ms || 0}ms
-                </div>
+                <div class="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto p-2 bg-[#050811]/70 rounded-lg">${escapeHtml(res.text || res.error || '無返回內容')}</div>
+                ${diffSection}
               </div>
-              <div class="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto p-2 bg-[#050811]/70 rounded-lg">${escapeHtml(res.text || res.error || '無返回內容')}</div>
-              ${diffSection}
             `;
-            resultsContainer.appendChild(card);
-          });
+          }).join('');
+
+          detailsEl.innerHTML = `
+            <summary class="px-5 py-3.5 cursor-pointer hover:bg-white/5 transition flex items-center justify-between text-xs font-bold text-slate-300 select-none">
+              <span class="flex items-center gap-2">
+                <i class="fas fa-layer-group text-sky-400"></i>
+                <span>👥 點此展開查看各 Agent 獨立實作輸出與檔案 Diff 明細 (${data.results.length} 個執行節點)</span>
+              </span>
+              <span class="text-[11px] font-mono text-sky-400">展開 / 收合 ▾</span>
+            </summary>
+            <div class="p-4 border-t border-white/10 space-y-3">
+              ${cardsInner}
+            </div>
+          `;
+          resultsContainer.appendChild(detailsEl);
         }
 
         loadWorkspaceStatus();

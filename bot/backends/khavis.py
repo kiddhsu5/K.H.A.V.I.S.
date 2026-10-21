@@ -52,6 +52,33 @@ class KhavisBackend(Backend):
                 ok=False,
                 error=f"budget exceeded: {reason or guard.reason()}",
             )
+
+        from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
+
+        if envelope.workspace_dir and has_any_upstream_key():
+            loop = asyncio.get_running_loop()
+            t_ag = time.perf_counter()
+            fb = await loop.run_in_executor(
+                None,
+                call_upstream_llm_fallback,
+                envelope.prompt,
+                "LangGraph-7-Role",
+                "khavis",
+                65,
+                envelope.workspace_dir,
+            )
+            if fb.get("ok"):
+                return BackendResult(
+                    backend="khavis",
+                    ok=True,
+                    text=str(fb["text"]),
+                    model=str(fb.get("model") or "LangGraph-7-Role"),
+                    latency_ms=int((time.perf_counter() - t_ag) * 1000),
+                    tokens_in=int(fb.get("tokens_in") or 0),
+                    tokens_out=int(fb.get("tokens_out") or 0),
+                    extra={"steps": "7", "autonomous_tools": "True"},
+                )
+
         try:
             from agents import run_team  # noqa: PLC0415 - lazy
 

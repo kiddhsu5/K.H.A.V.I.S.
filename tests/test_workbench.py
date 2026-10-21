@@ -293,3 +293,54 @@ def test_setup_wizard_endpoint() -> None:
     assert "cli_tools" in setup_data
     assert "deploy_commands" in setup_data
 
+
+def test_collaborative_orchestrator_relay_and_next_actions() -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from bot.models import BackendResult, DispatchEnvelope, DispatchReport
+
+    call_idx = 0
+
+    async def fake_dispatch(envelope: DispatchEnvelope) -> DispatchReport:
+        nonlocal call_idx
+        call_idx += 1
+        target = (envelope.only or ["antigravity"])[0]
+        return DispatchReport(
+            envelope=envelope,
+            results=[
+                BackendResult(
+                    backend=target,
+                    ok=True,
+                    text=f"Step {call_idx} executed by {target}",
+                    latency_ms=80,
+                )
+            ],
+            consensus=f"Step {call_idx} executed by {target}",
+            consensus_source=target,
+        )
+
+    with patch("bot.dispatch.DispatchRouter.dispatch", new_callable=AsyncMock) as mock_disp:
+        mock_disp.side_effect = fake_dispatch
+        body = json.dumps(
+            {
+                "prompt": "Build and verify health script",
+                "agents": ["antigravity", "codex"],
+                "collab_mode": "relay",
+                "previous_context": {
+                    "prompt": "Initial check",
+                    "consensus": "Tailscale is active",
+                },
+            }
+        ).encode("utf-8")
+        h_relay = DummyStatusHandler("/api/workbench/dispatch", method="POST", body=body)
+        h_relay.do_POST()
+        assert h_relay.responses[0][0] == 200
+        data = json.loads(h_relay.responses[0][1].decode("utf-8"))
+        assert data["ok"] is True
+        assert data["collab_mode"] == "relay"
+        assert len(data["results"]) == 2
+        assert len(data["collaboration_steps"]) == 2
+        assert len(data["next_actions"]) >= 2
+        assert "Step 2 executed by codex" in data["consensus"]
+
+
