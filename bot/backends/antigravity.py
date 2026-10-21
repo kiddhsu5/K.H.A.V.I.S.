@@ -142,6 +142,8 @@ class AntigravityBackend(Backend):
                     envelope.prompt,
                     self._model,
                     "antigravity",
+                    30,
+                    run_cwd,
                 )
                 if fb.get("ok"):
                     return BackendResult(

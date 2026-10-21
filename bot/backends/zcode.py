@@ -131,6 +131,8 @@ class ZcodeBackend(Backend):
                     envelope.prompt,
                     self._model,
                     "zcode",
+                    30,
+                    run_cwd,
                 )
                 if fb.get("ok"):
                     return BackendResult(

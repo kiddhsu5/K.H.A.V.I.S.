@@ -130,6 +130,8 @@ class CodexBackend(Backend):
                     envelope.prompt,
                     self._model,
                     "codex",
+                    30,
+                    run_cwd,
                 )
                 if fb.get("ok"):
                     return BackendResult(

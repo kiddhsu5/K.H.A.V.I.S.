@@ -90,6 +90,8 @@ class KhavisBackend(Backend):
                     envelope.prompt,
                     "LangGraph-7-Role",
                     "khavis",
+                    30,
+                    envelope.workspace_dir,
                 )
                 if fb.get("ok"):
                     return BackendResult(
