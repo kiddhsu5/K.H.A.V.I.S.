@@ -1,0 +1,83 @@
+# Python — standard ignores
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache
+.pytest_debug.log
+
+# mypy / linters
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*~
+
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+deploy/.env
+deploy/certs/*.pem
+
+# Handoff — hosts, key paths, credential locations. The repo is public.
+HANDOFF.local.md
+docs/HANDOFF.md
+
+# Shared workspace & runtime outputs
+workspace/
+outputs/
+config/custom_agents.json
+
+# Project runtime data
+memory/episodic.sqlite
+memory/episodic.sqlite-journal
+memory/semantic/*.sqlite3
+memory/semantic/*.parquet
+logs/*.jsonl
+logs/*.log
+# Per-request audit log (core/audit.py, default config/audit.jsonl)
+config/audit.jsonl
+config/audit.jsonl.*
+# Chroma creates this when a store is opened against a literal ":memory:" name
+:memory:.ses
+
+# Build / packaging
+*.bak
+*.save
+*.clobbered

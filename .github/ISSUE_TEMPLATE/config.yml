@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions
+    url: https://github.com/kiddhsu5/K.H.A.V.I.S./discussions
+    about: Open-ended questions, ideas, and show-and-tell.
+  - name: Security advisories
+    url: https://github.com/kiddhsu5/K.H.A.V.I.S./security/advisories/new
+    about: Please report security issues privately.
