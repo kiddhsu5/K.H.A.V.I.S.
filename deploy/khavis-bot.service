@@ -1,0 +1,30 @@
+[Unit]
+Description=K.H.A.V.I.S. Telegram dispatch bot (polling mode)
+Documentation=https://github.com/kiddhsu5/K.H.A.V.I.S.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/khavis-bot
+EnvironmentFile=/root/khavis-bot/.env
+Environment=BOT_MODE=polling
+ExecStart=/root/khavis-bot/.venv/bin/python -m bot.main --mode polling
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=khavis-bot
+
+# Harden a little even though we run as root (single-user VPS).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+# /root/.claude is required so the `claude` CLI can write session state
+# while ProtectHome=read-only is on; /tmp is for subprocess scratch files.
+ReadWritePaths=/root/khavis-bot/memory /root/khavis-bot/logs /root/.claude /tmp
+
+[Install]
+WantedBy=multi-user.target
