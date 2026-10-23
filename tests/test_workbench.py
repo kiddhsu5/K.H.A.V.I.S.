@@ -94,14 +94,25 @@ class DummyStatusHandler(Handler):
 
 
 def test_status_server_workbench_endpoints() -> None:
-    # 1. GET /workbench
+    # 1. GET /workbench  (現行介面 = 選項 C 任務卡片流)
     h_wb = DummyStatusHandler("/workbench")
     h_wb.do_GET()
     assert len(h_wb.responses) == 1
     status, body, ctype = h_wb.responses[0]
     assert status == 200
     assert "text/html" in ctype
-    assert "Workbench" in body.decode("utf-8")
+    wb_body = body.decode("utf-8")
+    assert "K.H.A.V.I.S." in wb_body
+    assert 'id="c-task-stream"' in wb_body
+
+    # 1b. GET /workbench-legacy  (改版前介面，保留作為回退路徑)
+    h_legacy = DummyStatusHandler("/workbench-legacy")
+    h_legacy.do_GET()
+    assert len(h_legacy.responses) == 1
+    status, legacy_body, legacy_ctype = h_legacy.responses[0]
+    assert status == 200
+    assert "text/html" in legacy_ctype
+    assert "Workbench" in legacy_body.decode("utf-8")
 
     # 2. GET /api/workbench/artifacts
     h_art = DummyStatusHandler("/api/workbench/artifacts")

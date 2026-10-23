@@ -416,12 +416,15 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "khavis-status/1.0"
 
     def _send(self, code: int, body: bytes, content_type: str) -> None:
-        self.send_response(code)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_GET(self) -> None:  # noqa: N802 - http.server API
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
@@ -435,6 +438,8 @@ class Handler(BaseHTTPRequestHandler):
             "/wall",
             "/workbench",
             "/work",
+            "/workbench-c",
+            "/workbench-legacy",
             "/api/dashboard",
             "/api/quota",
             "/api/alerts",
@@ -500,7 +505,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/workbench/history":
             from bot import history as bot_history  # noqa: PLC0415
 
-            raw_items = bot_history.tail(30)
+            raw_items = bot_history.tail(200)
             formatted: list[dict[str, object]] = []
             for item in raw_items:
                 if not isinstance(item, dict):
@@ -526,6 +531,12 @@ class Handler(BaseHTTPRequestHandler):
                     or item.get("phase")
                     or "K.H.A.V.I.S. Pipeline"
                 )
+                raw_backends = item.get("backends")
+                backends = (
+                    [str(b) for b in raw_backends]
+                    if isinstance(raw_backends, list)
+                    else ([str(raw_backends)] if raw_backends else [])
+                )
                 formatted.append(
                     {
                         "prompt": _redact(prompt_text),
@@ -533,6 +544,16 @@ class Handler(BaseHTTPRequestHandler):
                         "dispatched_at": ts_str,
                         "ok": bool(item.get("ok", True)),
                         "latency_ms": item.get("latency_ms"),
+                        # 分組維度 + 重讀成果用（見 module docstring）
+                        "backends": backends,
+                        "collab_mode": str(item.get("collab_mode") or ""),
+                        "project": str(item.get("project") or ""),
+                        "thread": str(item.get("thread") or ""),
+                        "step": int(item.get("step") or 0) or 1,
+                        # ts 是記錄的唯一識別：舊紀錄的 handle 只到秒，
+                        # 同秒的兩筆任務會被誤併成同一個對話串。
+                        "ts": float(item.get("ts") or 0.0),
+                        "consensus": _redact(str(item.get("consensus") or ""))[:2000],
                     }
                 )
             self._send(
@@ -552,7 +573,14 @@ class Handler(BaseHTTPRequestHandler):
                 "application/json; charset=utf-8",
             )
             return
-        if path in ("/workbench", "/work"):
+        if path in ("/workbench", "/work", "/workbench-c"):
+            # 現行介面 = 選項 C（任務卡片流）。/workbench-c 保留為別名。
+            from web.workbench_c import render_workbench_html_c  # noqa: PLC0415
+
+            self._send(200, render_workbench_html_c().encode(), "text/html; charset=utf-8")
+            return
+        if path == "/workbench-legacy":
+            # 改版前的拓撲式介面，保留作為回退路徑。
             from web.workbench import render_workbench_html  # noqa: PLC0415
 
             self._send(200, render_workbench_html().encode(), "text/html; charset=utf-8")
@@ -786,6 +814,13 @@ class Handler(BaseHTTPRequestHandler):
                 if isinstance(payload.get("previous_context"), dict)
                 else None
             )
+            # 對話串識別：前端在每輪帶上 thread id；第一輪沒有前例時由後端產生。
+            _prev_ctx = previous_context if isinstance(previous_context, dict) else {}
+            thread_id = str(_prev_ctx.get("thread") or "").strip() or f"t{int(time.time() * 1000)}"
+            try:
+                thread_step = int(_prev_ctx.get("step") or 0) + 1
+            except (TypeError, ValueError):
+                thread_step = 1
 
             if not prompt:
                 self._send(
@@ -898,6 +933,11 @@ class Handler(BaseHTTPRequestHandler):
                     "backends": list(agents),
                     "collab_mode": orch["collab_mode"],
                     "consensus_source": orch["consensus_source"] or ", ".join(str(a) for a in agents),
+                    "project": eff_project,
+                    "isolation_mode": eff_mode,
+                    "thread": thread_id,
+                    "step": thread_step,
+                    "consensus": str(orch.get("consensus") or ""),
                     "dispatched_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                     "ok": any(r.get("ok") for r in results_dump),
                     "latency_ms": total_ms,
@@ -906,6 +946,8 @@ class Handler(BaseHTTPRequestHandler):
 
             res_payload = {
                 "ok": True,
+                "thread": thread_id,
+                "step": thread_step,
                 "collab_mode": orch["collab_mode"],
                 "consensus": orch["consensus"],
                 "consensus_source": orch["consensus_source"],

@@ -35,7 +35,7 @@ class ZcodeBackend(Backend):
     def __init__(
         self,
         binary: str = "zcode",
-        timeout_s: int = 180,
+        timeout_s: int = 20,
         model: str = "",
         cwd: str | None = None,
     ) -> None:
@@ -90,6 +90,11 @@ class ZcodeBackend(Backend):
         if run_cwd and os.path.isdir(run_cwd):
             exec_kwargs["cwd"] = run_cwd
 
+        t0 = time.perf_counter()
+        err_detail = ""
+        stdout = ""
+        stderr = ""
+        rc = -1
         try:
             proc = await asyncio.create_subprocess_exec(
                 *args,
@@ -97,53 +102,49 @@ class ZcodeBackend(Backend):
                 stderr=asyncio.subprocess.PIPE,
                 **exec_kwargs,
             )
-            t0 = time.perf_counter()
             try:
                 stdout_b, stderr_b = await asyncio.wait_for(
                     proc.communicate(), timeout=self._timeout
                 )
+                rc = proc.returncode if proc.returncode is not None else -1
+                stdout = stdout_b.decode(errors="replace").strip()
+                stderr = stderr_b.decode(errors="replace").strip()
             except TimeoutError:
                 await _kill(proc)
-                return BackendResult(
-                    backend="zcode",
-                    ok=False,
-                    error=f"timeout after {self._timeout}s",
-                    model=self._model,
-                )
-            latency_ms = int((time.perf_counter() - t0) * 1000)
+                err_detail = f"timeout after {self._timeout}s"
         except FileNotFoundError as exc:
-            return BackendResult(backend="zcode", ok=False, error=str(exc))
+            err_detail = str(exc)
         except Exception as exc:  # noqa: BLE001
-            return BackendResult(backend="zcode", ok=False, error=repr(exc))
+            err_detail = repr(exc)
 
-        stdout = stdout_b.decode(errors="replace").strip()
-        stderr = stderr_b.decode(errors="replace").strip()
+        latency_ms = int((time.perf_counter() - t0) * 1000)
 
-        if proc.returncode != 0:
-            err_msg = stderr or stdout or f"process exited with {proc.returncode}"
-            from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
+        if rc != 0 or err_detail:
+            err_msg = err_detail or stderr or stdout or f"process exited with {rc}"
+            if run_cwd or (rc != 0 and not err_detail):
+                from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
 
-            if has_any_upstream_key():
-                loop = asyncio.get_running_loop()
-                fb = await loop.run_in_executor(
-                    None,
-                    call_upstream_llm_fallback,
-                    envelope.prompt,
-                    self._model,
-                    "zcode",
-                    30,
-                    run_cwd,
-                )
-                if fb.get("ok"):
-                    return BackendResult(
-                        backend="zcode",
-                        ok=True,
-                        text=str(fb["text"]),
-                        latency_ms=int((time.perf_counter() - t0) * 1000),
-                        model=str(fb.get("model") or self._model),
-                        tokens_in=int(fb.get("tokens_in") or 0),
-                        tokens_out=int(fb.get("tokens_out") or 0),
+                if has_any_upstream_key():
+                    loop = asyncio.get_running_loop()
+                    fb = await loop.run_in_executor(
+                        None,
+                        call_upstream_llm_fallback,
+                        envelope.prompt,
+                        self._model,
+                        "zcode",
+                        30,
+                        run_cwd,
                     )
+                    if fb.get("ok"):
+                        return BackendResult(
+                            backend="zcode",
+                            ok=True,
+                            text=str(fb["text"]),
+                            latency_ms=int((time.perf_counter() - t0) * 1000),
+                            model=str(fb.get("model") or self._model),
+                            tokens_in=int(fb.get("tokens_in") or 0),
+                            tokens_out=int(fb.get("tokens_out") or 0),
+                        )
             return BackendResult(
                 backend="zcode",
                 ok=False,

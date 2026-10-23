@@ -638,7 +638,9 @@ def read_artifact_content(rel_or_abs_path: str) -> dict[str, Any]:
 
 def render_workbench_html() -> str:
     """Generate the graphical, interactive dark/light SPA Workbench."""
-    return """<!DOCTYPE html>
+
+
+_WORKBENCH_PAGE_HEAD = """<!DOCTYPE html>
 <html lang="zh-Hant" class="dark">
 <head>
   <meta charset="utf-8">
@@ -1639,7 +1641,9 @@ def render_workbench_html() -> str:
 
   <!-- JavaScript Frontend Logic -->
   <script>
-    let currentTab = 'command';
+"""
+
+_WORKBENCH_CLIENT_JS = """    let currentTab = 'command';
     let execTimerInterval = null;
     let execStartTime = 0;
 
@@ -2462,11 +2466,13 @@ def render_workbench_html() -> str:
       }
       const input = document.getElementById('prompt-input');
       if (input) input.value = val;
+      followEl.value = '';
       await submitDispatch();
     }
 
     async function submitDispatch() {
-      const prompt = document.getElementById('prompt-input').value.trim();
+      const promptInputEl = document.getElementById('prompt-input');
+      const prompt = promptInputEl ? promptInputEl.value.trim() : '';
       if (!prompt) {
         alert("請輸入任務指示！");
         return;
@@ -2477,6 +2483,12 @@ def render_workbench_html() -> str:
         alert("請至少在上方拓撲圖點選一個執行的 Agent！");
         return;
       }
+
+      if (promptInputEl) {
+        promptInputEl.value = '';
+        promptInputEl.style.height = 'auto';
+      }
+      latestFinalDeliverableText = '';
 
       const capability = document.getElementById('capability-hint').value;
       const btn = document.getElementById('btn-dispatch');
@@ -2544,6 +2556,7 @@ def render_workbench_html() -> str:
 
         if (!resp.ok) {
           statusText.textContent = `執行失敗: ${data.detail || '未知錯誤'}`;
+          resultsContainer.innerHTML = '';
           return;
         }
 
@@ -2561,9 +2574,11 @@ def render_workbench_html() -> str:
         latestNextActions = Array.isArray(data.next_actions) ? data.next_actions : [];
 
         // Save context for seamless next-step continuation
+        const prevThread = (previousTurnContext && previousTurnContext.thread) ? previousTurnContext.thread : (data.thread || '');
         previousTurnContext = {
           prompt: prompt,
           consensus: finalConsensus,
+          thread: prevThread,
           step: (previousTurnContext ? (previousTurnContext.step || 1) + 1 : 1)
         };
         syncContinuationBanner();
@@ -2721,6 +2736,7 @@ def render_workbench_html() -> str:
         btn.disabled = false;
         btn.classList.remove('opacity-50');
         syncTopologyBeams(false);
+        resultsContainer.innerHTML = '';
         statusText.textContent = `網路或伺服器通訊錯誤: ${err.message}`;
       }
     }
@@ -3069,7 +3085,15 @@ def render_workbench_html() -> str:
       loadDashboardHistory();
       loadOverviewStatus();
     });
-  </script>
+"""
+
+_WORKBENCH_PAGE_TAIL = """  </script>
 </body>
 </html>
 """
+
+
+def render_workbench_html() -> str:
+    """Generate the graphical, interactive dark/light SPA Workbench."""
+    return _WORKBENCH_PAGE_HEAD + _WORKBENCH_CLIENT_JS + _WORKBENCH_PAGE_TAIL
+

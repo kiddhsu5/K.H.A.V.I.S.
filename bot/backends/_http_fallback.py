@@ -67,7 +67,7 @@ AGENT_SYSTEM_PROMPTS: dict[str, str] = {
     ),
 }
 
-_TOOL_CALL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
+_TOOL_CALL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*(?:</?tool_call>|$)", re.DOTALL)
 
 # Block destructive host-wiping commands while allowing normal ops/diagnostics
 _DANGEROUS_CMD_RE = re.compile(
@@ -184,7 +184,8 @@ def _execute_agent_tool(call_obj: dict[str, Any], cwd: str | None = None) -> str
 
 
 def _format_with_logs(executed_logs: list[str], body_text: str) -> str:
-    cleaned = _TOOL_CALL_RE.sub("", body_text or "").strip()
+    cleaned = _TOOL_CALL_RE.sub("", body_text or "")
+    cleaned = re.sub(r"</?tool_call>", "", cleaned).strip()
     if not executed_logs:
         return cleaned or body_text
     log_block = (
@@ -199,11 +200,11 @@ def call_upstream_llm_fallback(
     prompt: str,
     model: str = "",
     agent_name: str = "antigravity",
-    timeout_s: int = 90,
+    timeout_s: int = 45,
     cwd: str | None = None,
     enable_tools: bool = True,
 ) -> dict[str, Any]:
-    """Run an agentic multi-turn conversation (up to 3 tool rounds + synthesis) across active upstream pools."""
+    """Run an agentic multi-turn conversation (tool execution + synthesis) across active upstream pools."""
     sys_prompt = AGENT_SYSTEM_PROMPTS.get(agent_name, AGENT_SYSTEM_PROMPTS["antigravity"])
     messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
     executed_logs: list[str] = []
@@ -212,7 +213,7 @@ def call_upstream_llm_fallback(
     used_model = model
     reply_text = ""
 
-    max_tool_rounds = 2 if enable_tools else 0
+    max_tool_rounds = 1 if enable_tools else 0
     for round_idx in range(max_tool_rounds + 1):
         res = _single_turn_upstream(
             messages=messages,

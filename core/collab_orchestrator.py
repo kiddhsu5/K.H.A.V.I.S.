@@ -243,10 +243,9 @@ async def run_collaborative_workflow(
                 "剛才各個 Agent 已經在雲端主機與共用專案資料夾中執行了第一階段實作，結果如下：\n\n"
                 + "\n\n".join(candidates_dump)
                 + (f"\n\n目前共用專案資料夾的 Git Diff 變更：\n{diff_snippet}\n" if diff_snippet else "")
-                + "\n\n請你現在立即執行以下 **交互檢查、相互批評與最終閉環交付**：\n"
-                "1. **【交叉檢查與相互批評 (Cross-Check & Mutual Critique)】**：比對各 Agent 的實作結果，明確指出哪個 Agent 做得最完整、哪個 Agent 有遺漏或錯誤、或者哪個步驟還沒真正落地執行。\n"
-                "2. **【自動補執行與修正 (Auto-Remediation)】**：如果發現任何 Agent 只是『紙上談兵』而沒有真正執行指令或寫入檔案，或者需要進一步驗證，請你**直接使用 `<tool_call>` (`run_shell` / `write_file` / `read_file`) 親自在主機上補做完並驗證**！\n"
-                "3. **【🏆 高完成度最終整合交付】**：將所有 Agent 的優點與實測數據整合成一份結構清晰、可直接使用的最終繁體中文成果報告（請將『🔍 多 Agent 交叉審查與互評摘要』放在開頭簡短區塊，接著給出完整的『🏆 最終完成交付成果』）。"
+                + "\n\n請你現在立即執行以下 **交互檢查、相互批評與最終閉環交付**（請直接輸出完整繁體中文報告，切勿再輸出任何 `<tool_call>` 標籤）：\n"
+                "1. **【🔍 多 Agent 交叉審查與互評摘要】**：比對各 Agent 的實作結果，明確指出哪個 Agent 做得最完整、哪個 Agent 有遺漏或錯誤。\n"
+                "2. **【🏆 最終完成交付成果】**：將所有 Agent 的優點、程式碼修改與實測數據整合成一份結構清晰、可直接使用的最終繁體中文成果報告。"
             )
 
             loop = asyncio.get_running_loop()
@@ -256,14 +255,15 @@ async def run_collaborative_workflow(
                 review_prompt,
                 "MiniMax-M2.7",
                 "khavis",
-                65,
+                30,
                 str(shared_dir),
-                True,
+                False,
             )
             stage2_ms = int((time.perf_counter() - t_stage2) * 1000)
 
-            if synth_res.get("ok") and synth_res.get("text"):
-                consensus_text = str(synth_res["text"]).strip()
+            synth_text = re.sub(r"<tool_call>.*?(?:</?tool_call>|$)", "", str(synth_res.get("text") or ""), flags=re.S).strip()
+            if synth_res.get("ok") and synth_text:
+                consensus_text = synth_text
                 consensus_source = (
                     f"auto_loop ({' + '.join(r.backend for r in ok_results)} → 交叉互評收斂)"
                     if mode == "auto_loop"

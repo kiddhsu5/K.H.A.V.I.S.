@@ -20,7 +20,7 @@ class CodexBackend(Backend):
     def __init__(
         self,
         binary: str = "codex",
-        timeout_s: int = 180,
+        timeout_s: int = 20,
         model: str = "",
         cwd: str | None = None,
     ) -> None:
@@ -92,6 +92,11 @@ class CodexBackend(Backend):
         if run_cwd and os.path.isdir(run_cwd):
             exec_kwargs["cwd"] = run_cwd
 
+        t0 = time.perf_counter()
+        err_detail = ""
+        stdout = ""
+        stderr = ""
+        rc = -1
         try:
             proc = await asyncio.create_subprocess_exec(
                 *args,
@@ -99,59 +104,55 @@ class CodexBackend(Backend):
                 stderr=asyncio.subprocess.PIPE,
                 **exec_kwargs,
             )
-            t0 = time.perf_counter()
             try:
                 stdout_b, stderr_b = await asyncio.wait_for(
                     proc.communicate(), timeout=self._timeout
                 )
+                rc = proc.returncode if proc.returncode is not None else -1
+                stdout = stdout_b.decode(errors="replace").strip()
+                stderr = stderr_b.decode(errors="replace").strip()
             except TimeoutError:
                 await _kill(proc)
-                return BackendResult(
-                    backend="codex",
-                    ok=False,
-                    error=f"timeout after {self._timeout}s",
-                    model=self._model,
-                )
-            latency_ms = int((time.perf_counter() - t0) * 1000)
+                err_detail = f"timeout after {self._timeout}s"
         except FileNotFoundError as exc:
-            return BackendResult(backend="codex", ok=False, error=str(exc))
+            err_detail = str(exc)
         except Exception as exc:  # noqa: BLE001 - last-ditch
-            return BackendResult(backend="codex", ok=False, error=repr(exc))
+            err_detail = repr(exc)
 
-        stdout = stdout_b.decode(errors="replace").strip()
-        stderr = stderr_b.decode(errors="replace").strip()
+        latency_ms = int((time.perf_counter() - t0) * 1000)
 
-        if proc.returncode != 0:
+        if rc != 0 or err_detail:
             # Retry without --json in case the flag isn't accepted.
-            if "--json" in args and "unknown flag" in stderr.lower():
+            if not err_detail and "--json" in args and "unknown flag" in stderr.lower():
                 return await self._run_plain(envelope, latency_ms=latency_ms)
-            from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
+            if run_cwd or (rc != 0 and not err_detail):
+                from ._http_fallback import call_upstream_llm_fallback, has_any_upstream_key  # noqa: PLC0415
 
-            if has_any_upstream_key():
-                loop = asyncio.get_running_loop()
-                fb = await loop.run_in_executor(
-                    None,
-                    call_upstream_llm_fallback,
-                    envelope.prompt,
-                    self._model,
-                    "codex",
-                    30,
-                    run_cwd,
-                )
-                if fb.get("ok"):
-                    return BackendResult(
-                        backend="codex",
-                        ok=True,
-                        text=str(fb["text"]),
-                        latency_ms=int((time.perf_counter() - t0) * 1000),
-                        model=str(fb.get("model") or self._model),
-                        tokens_in=int(fb.get("tokens_in") or 0),
-                        tokens_out=int(fb.get("tokens_out") or 0),
+                if has_any_upstream_key():
+                    loop = asyncio.get_running_loop()
+                    fb = await loop.run_in_executor(
+                        None,
+                        call_upstream_llm_fallback,
+                        envelope.prompt,
+                        self._model,
+                        "codex",
+                        30,
+                        run_cwd,
                     )
+                    if fb.get("ok"):
+                        return BackendResult(
+                            backend="codex",
+                            ok=True,
+                            text=str(fb["text"]),
+                            latency_ms=int((time.perf_counter() - t0) * 1000),
+                            model=str(fb.get("model") or self._model),
+                            tokens_in=int(fb.get("tokens_in") or 0),
+                            tokens_out=int(fb.get("tokens_out") or 0),
+                        )
             return BackendResult(
                 backend="codex",
                 ok=False,
-                error=stderr or f"exit={proc.returncode}",
+                error=err_detail or stderr or f"exit={rc}",
                 latency_ms=latency_ms,
                 model=self._model,
             )
