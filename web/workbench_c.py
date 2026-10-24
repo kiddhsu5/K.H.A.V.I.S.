@@ -725,8 +725,21 @@ if (_nativeFetch) {
   window.fetch = function (input, init) {
     let url = '';
     try { url = typeof input === 'string' ? input : ((input && input.url) || ''); } catch (e) {}
+    const opts = Object.assign({}, init || {});
+    if (url.indexOf('/api/workbench/') !== -1) {
+      let tok = '';
+      try {
+        tok = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('khavis_console_token')) || '';
+      } catch (e) {}
+      if (!tok) {
+        const inp = document.getElementById('manus-console-token');
+        if (inp && inp.value) tok = inp.value.trim();
+      }
+      if (tok) {
+        opts.headers = Object.assign({}, opts.headers || {}, { 'X-KHAVIS-Console-Token': tok });
+      }
+    }
     if (url.indexOf('/api/workbench/dispatch') !== -1) {
-      const opts = Object.assign({}, init || {});
       if (typeof AbortController !== 'undefined') {
         try {
           _cAbortController = new AbortController();
@@ -735,7 +748,7 @@ if (_nativeFetch) {
       }
       return _nativeFetch(input, opts);
     }
-    return _nativeFetch(input, init);
+    return _nativeFetch(input, opts);
   };
 }
 
@@ -1911,6 +1924,177 @@ document.addEventListener('DOMContentLoaded', () => {
 """
 
 
+_MANUS_CONSOLE_PANEL: Final[str] = """
+<section id="manus-console" class="frost m-line rounded-2xl p-4 sm:p-5 space-y-3" aria-labelledby="manus-console-title">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="m-chip" style="border-color:var(--m-mist);color:var(--m-mist)">MANUS API</span>
+        <h2 id="manus-console-title" class="text-sm font-semibold" style="color:var(--m-bone)">雲端指令台</h2>
+      </div>
+      <p class="text-[11px] mt-1" style="color:var(--m-faint)">Manus 負責規劃與追問；騰訊雲保留為 K.H.A.V.I.S. 執行節點。</p>
+    </div>
+    <span id="manus-console-state" class="text-[11px] font-mono" style="color:var(--m-faint)" aria-live="polite">未連線</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+    <label class="sr-only" for="manus-console-token">K.H.A.V.I.S. Console Token</label>
+    <input id="manus-console-token" type="password" autocomplete="off" placeholder="輸入 Console Token（只存本分頁 sessionStorage）" class="w-full rounded-lg px-3 py-2 text-xs font-mono m-line" />
+    <button type="button" onclick="manusConnect()" class="m-btn-primary rounded-lg px-4 py-2 text-xs font-semibold">連線檢查</button>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_150px_auto] gap-2">
+    <label class="sr-only" for="manus-command-input">Manus 指令</label>
+    <textarea id="manus-command-input" rows="3" maxlength="20000" placeholder="例如：檢查 WQ 自動執行狀態，若 Cookie 過期只回報，不要提交 Alpha。" class="w-full rounded-lg px-3 py-2 text-sm m-line resize-y"></textarea>
+    <label class="sr-only" for="manus-agent-profile">Manus Agent profile</label>
+    <select id="manus-agent-profile" class="rounded-lg px-3 py-2 text-xs font-mono m-line">
+      <option value="standard">standard</option>
+      <option value="lite">lite</option>
+      <option value="max">max</option>
+      <option value="max-high">max-high</option>
+      <option value="max-ultra">max-ultra</option>
+    </select>
+    <button type="button" onclick="manusCreateTask()" class="m-btn-primary rounded-lg px-4 py-2 text-xs font-semibold">建立 Manus 任務</button>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+    <label class="sr-only" for="manus-task-id">Manus task ID</label>
+    <input id="manus-task-id" type="text" autocomplete="off" placeholder="Task ID（建立後自動填入）" class="w-full rounded-lg px-3 py-2 text-xs font-mono m-line" />
+    <button type="button" onclick="manusRefreshTask()" class="m-btn-ghost rounded-lg px-4 py-2 text-xs font-semibold">刷新狀態</button>
+  </div>
+  <div id="manus-task-summary" class="rounded-lg p-3 text-xs font-mono" style="background:var(--m-faint-bg);color:var(--m-dim)" aria-live="polite">尚未建立任務</div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+    <label class="sr-only" for="manus-followup-input">Manus 追問</label>
+    <textarea id="manus-followup-input" rows="2" maxlength="20000" placeholder="對目前 Manus 任務追加指令…" class="w-full rounded-lg px-3 py-2 text-sm m-line resize-y"></textarea>
+    <button type="button" onclick="manusSendFollowup()" class="m-btn-ghost rounded-lg px-4 py-2 text-xs font-semibold">追加訊息</button>
+  </div>
+  <div id="manus-message-feed" class="max-h-64 overflow-y-auto m-scroll space-y-2" aria-live="polite"></div>
+</section>
+"""
+
+
+_MANUS_CONSOLE_JS: Final[str] = """
+(() => {
+  const tokenKey = 'khavis_console_token';
+  const stateEl = () => document.getElementById('manus-console-state');
+  const taskEl = () => document.getElementById('manus-task-id');
+  const safe = value => String(value == null ? '' : value).slice(0, 4000);
+  let tokenFallback = '';
+  const readSessionToken = () => {
+    try { return typeof sessionStorage === 'undefined' ? tokenFallback : (sessionStorage.getItem(tokenKey) || tokenFallback); }
+    catch (_) { return tokenFallback; }
+  };
+  const saveSessionToken = value => {
+    tokenFallback = value;
+    try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(tokenKey, value); }
+    catch (_) { /* private browsing can disable storage; use the input for this request */ }
+  };
+
+  function setState(text, ok = null) {
+    const el = stateEl();
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = ok === true ? 'var(--m-sage)' : (ok === false ? 'var(--m-rose-text)' : 'var(--m-faint)');
+  }
+
+  async function request(path, options = {}) {
+    const token = readSessionToken();
+    if (!token) throw new Error('請先輸入 Console Token');
+    const headers = Object.assign({}, options.headers || {}, {
+      'X-KHAVIS-Console-Token': token,
+      'Content-Type': 'application/json'
+    });
+    const response = await fetch(path, Object.assign({}, options, {headers}));
+    let data = {};
+    try { data = await response.json(); } catch (_) { data = {}; }
+    if (!response.ok || data.ok === false) {
+      throw new Error((data.error && (data.error.detail || data.error.title)) || `HTTP ${response.status}`);
+    }
+    return data;
+  }
+
+  window.manusConnect = async function manusConnect(silent = false) {
+    const input = document.getElementById('manus-console-token');
+    const token = (input && input.value.trim()) || readSessionToken() || '';
+    if (!token) { setState('需要 Console Token', false); return; }
+    saveSessionToken(token);
+    try {
+      const data = await request('/api/manus/status');
+      setState(data.configured ? '已連線 · API Key 就緒' : '已連線 · 尚未配置 API Key', data.configured);
+      if (!silent) document.getElementById('manus-command-input')?.focus();
+    } catch (err) { setState(safe(err.message), false); }
+  };
+
+  window.manusCreateTask = async function manusCreateTask() {
+    const input = document.getElementById('manus-command-input');
+    const message = input && input.value.trim();
+    const profile = document.getElementById('manus-agent-profile')?.value || 'standard';
+    if (!message) { setState('請輸入指令', false); return; }
+    setState('建立任務中…');
+    try {
+      const data = await request('/api/manus/tasks', {
+        method: 'POST', body: JSON.stringify({message, agent_profile: profile, interactive_mode: true})
+      });
+      const task = data.task || {};
+      const id = task.task_id || task.id || '';
+      if (!id) throw new Error('Manus 未回傳 task ID');
+      taskEl().value = id;
+      input.value = '';
+      setState(`任務已建立 · ${id}`, true);
+      await manusRefreshTask(true);
+    } catch (err) { setState(safe(err.message), false); }
+  };
+
+  window.manusRefreshTask = async function manusRefreshTask(silent = false) {
+    const id = taskEl()?.value.trim();
+    if (!id) { if (!silent) setState('請先輸入或建立 Task ID', false); return; }
+    if (!silent) setState('同步任務狀態…');
+    try {
+      const [detail, messages] = await Promise.all([
+        request(`/api/manus/tasks/${encodeURIComponent(id)}`),
+        request(`/api/manus/tasks/${encodeURIComponent(id)}/messages?limit=50`)
+      ]);
+      const task = detail.task || {};
+      const summary = document.getElementById('manus-task-summary');
+      if (summary) summary.textContent = `status=${safe(task.status || 'unknown')}  title=${safe(task.title || '')}  updated=${safe(task.updated_at || '')}`;
+      const feed = document.getElementById('manus-message-feed');
+      if (feed) {
+        feed.replaceChildren();
+        (messages.messages || []).slice().reverse().forEach(event => {
+          const row = document.createElement('div');
+          row.className = 'rounded-lg p-2 text-xs font-mono';
+          row.style.background = 'var(--m-faint-bg)';
+          const type = safe(event.type || 'event');
+          const payload = event.assistant_message || event.user_message || event.status_update || event.error_message || {};
+          const content = payload.content || payload.brief || payload.description || payload.error_type || '';
+          row.textContent = `${type}: ${safe(content)}`;
+          feed.appendChild(row);
+        });
+      }
+      setState(`任務 ${safe(task.status || 'unknown')}`, true);
+    } catch (err) { setState(safe(err.message), false); }
+  };
+
+  window.manusSendFollowup = async function manusSendFollowup() {
+    const id = taskEl()?.value.trim();
+    const input = document.getElementById('manus-followup-input');
+    const message = input && input.value.trim();
+    if (!id || !message) { setState('需要 Task ID 與追問內容', false); return; }
+    setState('送出追問中…');
+    try {
+      await request(`/api/manus/tasks/${encodeURIComponent(id)}/messages`, {
+        method: 'POST', body: JSON.stringify({message})
+      });
+      input.value = '';
+      setState('追問已送出', true);
+      await manusRefreshTask(true);
+    } catch (err) { setState(safe(err.message), false); }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (readSessionToken()) window.manusConnect(true);
+  });
+})();
+"""
+
+
 def render_workbench_html_c() -> str:
     """Render the Option-C task-stream Workbench (Morandi palette)."""
     workspace = _rebalance(_slice("workspace"))
@@ -1938,6 +2122,7 @@ def render_workbench_html_c() -> str:
         <!-- legacy 的 live-results-container 會被搬進來：
              hero card、「接下來怎麼辦」按鈕與追問框都在這一格，且永不重建。 -->
         <div id="c-live-slot" class="c-live-slot"></div>
+        {_MANUS_CONSOLE_PANEL}
       </div>
 
       <!-- 總覽模式：所有任務的卡片流（次要視圖） -->
@@ -2036,10 +2221,13 @@ def render_workbench_html_c() -> str:
 {body}
 
   <script>
-{_WORKBENCH_CLIENT_JS}
+{ _WORKBENCH_CLIENT_JS }
   </script>
-{_LEGACY_CAPTURE_JS}
-{_C_EXTRA_JS}
+{ _LEGACY_CAPTURE_JS }
+{ _C_EXTRA_JS }
+  <script>
+{_MANUS_CONSOLE_JS}
+  </script>
 </body>
 </html>
 """

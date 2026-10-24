@@ -55,9 +55,14 @@ htmlcov/
 deploy/.env
 deploy/certs/*.pem
 
-# Handoff — hosts, key paths, credential locations. The repo is public.
+# Handoff & internal business/strategy notes — keep local, do not commit to public repo.
 HANDOFF.local.md
 docs/HANDOFF.md
+BUSINESS_PLAN.md
+RELEASE_CHECKLIST.md
+docs/STRATEGY.md
+docs/superpowers/
+blog/
 
 # Shared workspace & runtime outputs
 workspace/

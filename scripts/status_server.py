@@ -24,8 +24,10 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import hmac
 import html
 import json
+import os
 import re
 import socket
 import socketserver
@@ -37,6 +39,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -426,8 +429,191 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def _send_json(self, code: int, payload: dict[str, Any]) -> None:
+        self._send(
+            code,
+            json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            "application/json; charset=utf-8",
+        )
+
+    def _require_console_token(self) -> bool:
+        expected = os.getenv("KHAVIS_CONSOLE_TOKEN", "").strip()
+        supplied = self.headers.get("X-KHAVIS-Console-Token", "")
+        if not expected:
+            self._send_json(
+                503,
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "console_not_configured",
+                        "detail": "K.H.A.V.I.S. console is not configured",
+                    },
+                },
+            )
+            return False
+        if not supplied or not hmac.compare_digest(supplied, expected):
+            self._send_json(
+                401,
+                {
+                    "ok": False,
+                    "detail": "需要 Console Token 授權（請先於雲端指令台輸入 Token）",
+                    "error": {"code": "unauthorized", "detail": "Console token required"},
+                },
+            )
+            return False
+        return True
+
+    def _require_workbench_write_token(self) -> bool:
+        """Require X-KHAVIS-Console-Token for mutating /api/workbench/* routes when configured."""
+        expected = os.getenv("KHAVIS_CONSOLE_TOKEN", "").strip()
+        if not expected:
+            return True
+        supplied = self.headers.get("X-KHAVIS-Console-Token", "")
+        if not supplied or not hmac.compare_digest(supplied, expected):
+            self._send_json(
+                401,
+                {
+                    "ok": False,
+                    "detail": "訪客唯讀展示模式：請先於「雲端指令台」輸入 Console Token 解鎖派工與設定寫入權限",
+                    "error": {"code": "unauthorized", "detail": "Console token required for write/dispatch"},
+                },
+            )
+            return False
+        return True
+
+    def _read_json_payload(self) -> dict[str, Any] | None:
+        try:
+            content_len = int(self.headers.get("Content-Length", 0))
+        except (TypeError, ValueError):
+            content_len = -1
+        if content_len < 0 or content_len > 30000:
+            self._send_json(
+                413,
+                {"ok": False, "error": {"code": "payload_too_large", "detail": "Request body is too large"}},
+            )
+            return None
+        try:
+            payload = json.loads(self.rfile.read(content_len).decode("utf-8", errors="replace"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._send_json(
+                400,
+                {"ok": False, "error": {"code": "invalid_json", "detail": "Request body must be JSON"}},
+            )
+            return None
+        if not isinstance(payload, dict):
+            self._send_json(
+                400,
+                {"ok": False, "error": {"code": "invalid_json", "detail": "JSON body must be an object"}},
+            )
+            return None
+        return payload
+
+    def _send_manus_exception(self, exc: Exception) -> None:
+        from core.manus_client import ManusAPIError  # noqa: PLC0415
+
+        if isinstance(exc, ManusAPIError):
+            self._send_json(exc.status_code, {"ok": False, "error": exc.to_dict()})
+            return
+        self._send_json(
+            502,
+            {
+                "ok": False,
+                "error": {
+                    "code": "manus_bridge_error",
+                    "detail": "Manus bridge failed safely; inspect server logs",
+                },
+            },
+        )
+
+    def _handle_manus_get(self, path: str) -> None:
+        from core.manus_client import ManusClient  # noqa: PLC0415
+
+        if path == "/api/manus/status":
+            client = ManusClient()
+            self._send_json(
+                200,
+                {"ok": True, "configured": client.configured, "base_url": client.base_url},
+            )
+            return
+
+        parts = path.strip("/").split("/")
+        if len(parts) == 4 and parts[2] == "tasks":
+            try:
+                result = ManusClient().task_detail(parts[3])
+                self._send_json(200, {"ok": True, "task": result.get("task", result)})
+            except Exception as exc:  # noqa: BLE001 - convert upstream failures to safe JSON
+                self._send_manus_exception(exc)
+            return
+
+        if len(parts) == 5 and parts[2] == "tasks" and parts[4] == "messages":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                limit = int(query.get("limit", ["50"])[0])
+                result = ManusClient().list_messages(parts[3], limit=limit)
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "task_id": result.get("task_id", parts[3]),
+                        "messages": result.get("messages", []),
+                        "next_cursor": result.get("next_cursor"),
+                    },
+                )
+            except Exception as exc:  # noqa: BLE001 - convert upstream failures to safe JSON
+                self._send_manus_exception(exc)
+            return
+
+        self._send_json(404, {"ok": False, "error": {"code": "not_found", "detail": "Not found"}})
+
+    def _handle_manus_post(self, path: str) -> None:
+        from core.manus_client import ManusClient  # noqa: PLC0415
+
+        payload = self._read_json_payload()
+        if payload is None:
+            return
+        try:
+            if path == "/api/manus/tasks":
+                message = payload.get("message")
+                profile = payload.get("agent_profile", "standard")
+                interactive = payload.get("interactive_mode", True)
+                if not isinstance(message, str) or not isinstance(profile, str) or not isinstance(interactive, bool):
+                    raise ValueError("message, agent_profile and interactive_mode have invalid types")
+                result = ManusClient().create_task(
+                    message,
+                    agent_profile=profile,
+                    interactive_mode=interactive,
+                )
+                self._send_json(200, {"ok": True, "task": result})
+                return
+
+            parts = path.strip("/").split("/")
+            if len(parts) == 5 and parts[2] == "tasks" and parts[4] == "messages":
+                message = payload.get("message")
+                profile = payload.get("agent_profile")
+                if not isinstance(message, str) or (profile is not None and not isinstance(profile, str)):
+                    raise ValueError("message and agent_profile have invalid types")
+                result = ManusClient().send_message(parts[3], message, agent_profile=profile)
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "task_id": result.get("task_id", parts[3]),
+                        "request_id": result.get("request_id"),
+                    },
+                )
+                return
+            self._send_json(404, {"ok": False, "error": {"code": "not_found", "detail": "Not found"}})
+        except ValueError as exc:
+            self._send_json(400, {"ok": False, "error": {"code": "invalid_argument", "detail": str(exc)}})
+        except Exception as exc:  # noqa: BLE001 - convert upstream failures to safe JSON
+            self._send_manus_exception(exc)
+
     def do_GET(self) -> None:  # noqa: N802 - http.server API
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
+        if path == "/api/manus/status" or path.startswith("/api/manus/tasks/"):
+            if self._require_console_token():
+                self._handle_manus_get(path)
+            return
         if path == "/pgp.txt":
             self._send(200, _pgp_bytes(), "text/plain; charset=utf-8")
             return
@@ -678,6 +864,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
+        if path == "/api/manus/tasks" or path.startswith("/api/manus/tasks/"):
+            if self._require_console_token():
+                self._handle_manus_post(path)
+            return
+        if path.startswith("/api/workbench/"):
+            if not self._require_workbench_write_token():
+                return
         if path == "/api/workbench/models":
             content_len = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_len).decode("utf-8", errors="replace")

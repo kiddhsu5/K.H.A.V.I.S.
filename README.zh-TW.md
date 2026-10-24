@@ -466,12 +466,18 @@ class MyProvider(ProviderPlugin):
 
 ---
 
-## 社群與支援
+## 社群、團隊版與商業合作 (Open Core & Enterprise Support)
 
-- GitHub Issues:bug 回報與功能請求
-- GitHub Discussions:問題討論、作品展示、routing 食譜
-- Discord:即將推出
-- 安全性:請見 [`SECURITY.md`](SECURITY.md) 的負責任揭露流程
+- **個人與開源社群（Apache 2.0 永久免費）**：
+  - GitHub Issues：Bug 回報與功能請求
+  - GitHub Discussions：問題討論、作品展示、Routing 與 Multi-CLI 協同食譜
+  - 安全性：請見 [`SECURITY.md`](.github/SECURITY.md) 的負責任揭露流程
+- **🏢 團隊版與企業私有化部署（Enterprise & Team Support）**：
+  - 針對研發團隊與企業內部 AI 轉型，我們提供進階商業支持：
+    - **多人共享 Coding Plan 配額池與 RBAC 權限管理**（統一納管團隊的 MiniMax / GLM / OpenAI / Anthropic 訂閱）
+    - **企業內網私有化部署與自訂 CLI / 內部系統工具鏈整合**
+    - **團隊級 Prompt 與 Git Worktree 變更審計日誌（Audit & Compliance）**
+  - 📩 商業合作、技術顧問或私有化定制請聯繫：[`security@kiddhsu.taipei`](mailto:security@kiddhsu.taipei) 或透過 [GitHub Discussions](https://github.com/kiddhsu5/K.H.A.V.I.S./discussions) 留言。
 
 ---
 

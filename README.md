@@ -487,12 +487,18 @@ Highlights:
 
 ---
 
-## Community & support
+## Community & Enterprise Support (Open Core)
 
-- GitHub Issues: bug reports and feature requests
-- GitHub Discussions: questions, show-and-tell, routing recipes
-- Discord: *coming soon*
-- Security: see [`SECURITY.md`](SECURITY.md) for responsible disclosure
+- **Open-Source Community (Apache 2.0 Free Forever)**:
+  - GitHub Issues: bug reports and feature requests
+  - GitHub Discussions: questions, show-and-tell, routing & multi-CLI recipes
+  - Security: see [`SECURITY.md`](.github/SECURITY.md) for responsible disclosure
+- **🏢 Team & Enterprise Support**:
+  - For engineering teams and organizations adopting multi-agent coding workflows, we offer commercial support & custom deployment:
+    - **Shared Team Coding-Plan Quota Pools & RBAC Access Control**
+    - **On-Premise / VPC Private Deployment & Custom Internal CLI Integration**
+    - **Team-Wide Git Worktree Audit Logs & Governance**
+  - 📩 Contact for commercial inquiries, private deployment, or ecosystem partnerships: [`security@kiddhsu.taipei`](mailto:security@kiddhsu.taipei) or via [GitHub Discussions](https://github.com/kiddhsu5/K.H.A.V.I.S./discussions).
 
 ---
 

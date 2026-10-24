@@ -93,6 +93,85 @@ class DummyStatusHandler(Handler):
         self.responses.append((status, body, content_type))
 
 
+def test_manus_console_routes_are_protected_and_proxy_tasks(monkeypatch) -> None:
+    monkeypatch.setenv("KHAVIS_CONSOLE_TOKEN", "console-token")
+
+    unauthorized = DummyStatusHandler("/api/manus/status")
+    unauthorized.do_GET()
+    assert unauthorized.responses[0][0] == 401
+
+    wb_unauth = DummyStatusHandler(
+        "/api/workbench/dispatch",
+        method="POST",
+        body=b'{"prompt":"hi"}',
+    )
+    wb_unauth.do_POST()
+    assert wb_unauth.responses[0][0] == 401
+    assert "Console Token" in json.loads(wb_unauth.responses[0][1])["detail"]
+
+    class FakeManusClient:
+        configured = True
+        base_url = "https://api.manus.ai"
+
+        def create_task(self, message, *, agent_profile, interactive_mode):
+            assert message == "檢查 WQ 狀態"
+            assert agent_profile == "max-high"
+            assert interactive_mode is True
+            return {"ok": True, "task_id": "task-123", "task_title": "WQ"}
+
+        def task_detail(self, task_id):
+            assert task_id == "task-123"
+            return {"ok": True, "task": {"id": task_id, "status": "running"}}
+
+        def list_messages(self, task_id, *, limit):
+            assert task_id == "task-123"
+            assert limit == 10
+            return {"ok": True, "task_id": task_id, "messages": [], "next_cursor": None}
+
+        def send_message(self, task_id, message, *, agent_profile):
+            assert task_id == "task-123"
+            assert message == "繼續"
+            assert agent_profile == "standard"
+            return {"ok": True, "task_id": task_id, "request_id": "req-1"}
+
+    monkeypatch.setattr("core.manus_client.ManusClient", FakeManusClient)
+
+    status = DummyStatusHandler("/api/manus/status")
+    status.headers["X-KHAVIS-Console-Token"] = "console-token"
+    status.do_GET()
+    assert status.responses[0][0] == 200
+    assert json.loads(status.responses[0][1])["configured"] is True
+
+    create = DummyStatusHandler(
+        "/api/manus/tasks",
+        method="POST",
+        body='{"message":"檢查 WQ 狀態","agent_profile":"max-high","interactive_mode":true}'.encode(),
+    )
+    create.headers["X-KHAVIS-Console-Token"] = "console-token"
+    create.do_POST()
+    assert create.responses[0][0] == 200
+    assert json.loads(create.responses[0][1])["task"]["task_id"] == "task-123"
+
+    detail = DummyStatusHandler("/api/manus/tasks/task-123")
+    detail.headers["X-KHAVIS-Console-Token"] = "console-token"
+    detail.do_GET()
+    assert json.loads(detail.responses[0][1])["task"]["status"] == "running"
+
+    messages = DummyStatusHandler("/api/manus/tasks/task-123/messages?limit=10")
+    messages.headers["X-KHAVIS-Console-Token"] = "console-token"
+    messages.do_GET()
+    assert messages.responses[0][0] == 200
+
+    follow_up = DummyStatusHandler(
+        "/api/manus/tasks/task-123/messages",
+        method="POST",
+        body='{"message":"繼續","agent_profile":"standard"}'.encode(),
+    )
+    follow_up.headers["X-KHAVIS-Console-Token"] = "console-token"
+    follow_up.do_POST()
+    assert json.loads(follow_up.responses[0][1])["task_id"] == "task-123"
+
+
 def test_status_server_workbench_endpoints() -> None:
     # 1. GET /workbench  (現行介面 = 選項 C 任務卡片流)
     h_wb = DummyStatusHandler("/workbench")
@@ -104,6 +183,9 @@ def test_status_server_workbench_endpoints() -> None:
     wb_body = body.decode("utf-8")
     assert "K.H.A.V.I.S." in wb_body
     assert 'id="c-task-stream"' in wb_body
+    assert "manus-console" in wb_body
+    assert "manusCreateTask" in wb_body
+    assert "X-KHAVIS-Console-Token" in wb_body
 
     # 1b. GET /workbench-legacy  (改版前介面，保留作為回退路徑)
     h_legacy = DummyStatusHandler("/workbench-legacy")
@@ -353,5 +435,3 @@ def test_collaborative_orchestrator_relay_and_next_actions() -> None:
         assert len(data["collaboration_steps"]) == 2
         assert len(data["next_actions"]) >= 2
         assert "Step 2 executed by codex" in data["consensus"]
-
-
